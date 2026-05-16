@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeAll } from "vitest";
-import app from "../index";
+import { describe, it, expect, beforeAll } from 'vitest';
+import app from '../index';
 
 const testEnv = {
   SUPABASE_URL: process.env.SUPABASE_URL!,
@@ -17,44 +17,44 @@ let createdNoteId: string;
 
 beforeAll(async () => {
   const res = await app.request(
-    "/auth/login",
+    '/auth/login',
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: testEnv.TEST_EMAIL,
         password: testEnv.TEST_PASSWORD,
       }),
     },
-    testEnv,
+    testEnv
   );
 
   const body = (await res.json()) as { token: string };
 
   // decodifica o payload sem verificar assinatura
   if (body.token) {
-    const payload = JSON.parse(atob(body.token.split(".")[1]));
+    const payload = JSON.parse(atob(body.token.split('.')[1]));
   }
 
   token = body.token;
 });
 
-describe("POST /notes", () => {
-  it("should create a note", async () => {
+describe('POST /notes', () => {
+  it('should create a note', async () => {
     const res = await app.request(
-      "/notes",
+      '/notes',
       {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          title: "nota de teste",
-          content: "conteudo de teste",
+          title: 'nota de teste',
+          content: 'conteudo de teste',
         }),
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(201);
@@ -64,51 +64,51 @@ describe("POST /notes", () => {
       content: string;
     };
     expect(body.id).toBeDefined();
-    expect(body.title).toBe("nota de teste");
-    expect(body.content).toBe("conteudo de teste");
+    expect(body.title).toBe('nota de teste');
+    expect(body.content).toBe('conteudo de teste');
     createdNoteId = body.id;
   });
 
-  it("should return 400 when content is missing", async () => {
+  it('should return 400 when content is missing', async () => {
     const res = await app.request(
-      "/notes",
+      '/notes',
       {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ title: "sem conteudo" }),
+        body: JSON.stringify({ title: 'sem conteudo' }),
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(400);
   });
 
-  it("should return 401 without token", async () => {
+  it('should return 401 without token', async () => {
     const res = await app.request(
-      "/notes",
+      '/notes',
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "test", content: "test" }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'test', content: 'test' }),
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(401);
   });
 });
 
-describe("GET /notes", () => {
-  it("should list notes", async () => {
+describe('GET /notes', () => {
+  it('should list notes', async () => {
     const res = await app.request(
-      "/notes",
+      '/notes',
       {
         headers: { Authorization: `Bearer ${token}` },
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(200);
@@ -116,20 +116,20 @@ describe("GET /notes", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  it("should return 401 without token", async () => {
-    const res = await app.request("/notes", {}, testEnv);
+  it('should return 401 without token', async () => {
+    const res = await app.request('/notes', {}, testEnv);
     expect(res.status).toBe(401);
   });
 });
 
-describe("GET /notes/:id", () => {
-  it("should return a note by id", async () => {
+describe('GET /notes/:id', () => {
+  it('should return a note by id', async () => {
     const res = await app.request(
       `/notes/${createdNoteId}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(200);
@@ -137,53 +137,53 @@ describe("GET /notes/:id", () => {
     expect(body.id).toBe(createdNoteId);
   });
 
-  it("should return 404 for nonexistent note", async () => {
+  it('should return 404 for nonexistent note', async () => {
     const res = await app.request(
-      "/notes/00000000-0000-0000-0000-000000000000",
+      '/notes/00000000-0000-0000-0000-000000000000',
       {
         headers: { Authorization: `Bearer ${token}` },
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(404);
   });
 });
 
-describe("PUT /notes/:id", () => {
-  it("should update a note", async () => {
+describe('PUT /notes/:id', () => {
+  it('should update a note', async () => {
     const res = await app.request(
       `/notes/${createdNoteId}`,
       {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          title: "titulo atualizado",
-          content: "conteudo atualizado",
+          title: 'titulo atualizado',
+          content: 'conteudo atualizado',
         }),
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as { title: string; content: string };
-    expect(body.title).toBe("titulo atualizado");
-    expect(body.content).toBe("conteudo atualizado");
+    expect(body.title).toBe('titulo atualizado');
+    expect(body.content).toBe('conteudo atualizado');
   });
 });
 
-describe("DELETE /notes/:id", () => {
-  it("should delete a note", async () => {
+describe('DELETE /notes/:id', () => {
+  it('should delete a note', async () => {
     const res = await app.request(
       `/notes/${createdNoteId}`,
       {
-        method: "DELETE",
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(200);
@@ -191,13 +191,13 @@ describe("DELETE /notes/:id", () => {
     expect(body.success).toBe(true);
   });
 
-  it("should return 404 after deletion", async () => {
+  it('should return 404 after deletion', async () => {
     const res = await app.request(
       `/notes/${createdNoteId}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(404);

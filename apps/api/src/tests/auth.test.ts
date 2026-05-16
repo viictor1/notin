@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import app from "../index";
+import { describe, it, expect } from 'vitest';
+import app from '../index';
 
 const testEnv = {
   SUPABASE_URL: process.env.SUPABASE_URL!,
@@ -12,19 +12,19 @@ const testEnv = {
   TEST_PASSWORD: process.env.TEST_PASSWORD!,
 };
 
-describe("POST /auth/login", () => {
-  it("should return token on valid credentials", async () => {
+describe('POST /auth/login', () => {
+  it('should return token on valid credentials', async () => {
     const res = await app.request(
-      "/auth/login",
+      '/auth/login',
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: testEnv.TEST_EMAIL,
           password: testEnv.TEST_PASSWORD,
         }),
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(200);
@@ -33,51 +33,51 @@ describe("POST /auth/login", () => {
     expect(body.refreshToken).toBeDefined();
   });
 
-  it("should return 401 on invalid credentials", async () => {
+  it('should return 401 on invalid credentials', async () => {
     const res = await app.request(
-      "/auth/login",
+      '/auth/login',
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: "wrong@email.com",
-          password: "wrongpassword",
+          email: 'wrong@email.com',
+          password: 'wrongpassword',
         }),
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(401);
   });
 
-  it("should return 400 when missing fields", async () => {
+  it('should return 400 when missing fields', async () => {
     const res = await app.request(
-      "/auth/login",
+      '/auth/login',
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "test@test.com" }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'test@test.com' }),
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(400);
   });
 });
 
-describe("POST /auth/refresh", () => {
-  it("should return new token on valid refresh token", async () => {
+describe('POST /auth/refresh', () => {
+  it('should return new token on valid refresh token', async () => {
     const loginRes = await app.request(
-      "/auth/login",
+      '/auth/login',
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: testEnv.TEST_EMAIL,
           password: testEnv.TEST_PASSWORD,
         }),
       },
-      testEnv,
+      testEnv
     );
 
     const { refreshToken } = (await loginRes.json()) as {
@@ -85,13 +85,13 @@ describe("POST /auth/refresh", () => {
     };
 
     const res = await app.request(
-      "/auth/refresh",
+      '/auth/refresh',
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(200);
@@ -99,15 +99,15 @@ describe("POST /auth/refresh", () => {
     expect(body.token).toBeDefined();
   });
 
-  it("should return 401 on invalid refresh token", async () => {
+  it('should return 401 on invalid refresh token', async () => {
     const res = await app.request(
-      "/auth/refresh",
+      '/auth/refresh',
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken: "invalid" }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: 'invalid' }),
       },
-      testEnv,
+      testEnv
     );
 
     expect(res.status).toBe(401);
