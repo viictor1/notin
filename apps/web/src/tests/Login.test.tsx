@@ -2,18 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Login } from '../pages/Login';
+import { useAuth } from '../contexts/AuthContext';
 
 const mockNavigate = vi.fn();
+const mockLogin = vi.fn();
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock('../services/api', () => ({
-  authService: {
-    login: vi.fn(),
-  },
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: vi.fn(),
 }));
 
 const renderLogin = () =>
@@ -26,8 +26,15 @@ const renderLogin = () =>
 describe('Login', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
+
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+      login: mockLogin,
+      logout: vi.fn(),
+    });
   });
 
   it('should render login form', () => {
@@ -37,36 +44,43 @@ describe('Login', () => {
   });
 
   it('should show error on invalid password', async () => {
-    const { authService } = await import('../services/api');
-    vi.mocked(authService.login).mockRejectedValueOnce(new Error('401'));
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+      error: 'Senha incorreta',
+      login: mockLogin,
+      logout: vi.fn(),
+    });
 
     renderLogin();
+    expect(screen.getByText('Senha incorreta')).toBeInTheDocument();
+  });
+
+  it('should call login with password on submit', async () => {
+    renderLogin();
     fireEvent.change(screen.getByPlaceholderText('••••••••'), {
-      target: { value: 'wrongpassword' },
+      target: { value: 'mypassword' },
     });
     fireEvent.click(screen.getByText('entrar'));
 
     await waitFor(() => {
-      expect(screen.getByText('Senha incorreta')).toBeInTheDocument();
+      expect(mockLogin).toHaveBeenCalledWith('mypassword');
     });
   });
 
-  it('should navigate to / on successful login', async () => {
-    const { authService } = await import('../services/api');
-    vi.mocked(authService.login).mockResolvedValueOnce({
-      data: { token: 'fake-token', refreshToken: 'fake-refresh' },
-    } as any);
+  it('should navigate to / when authenticated', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      login: mockLogin,
+      logout: vi.fn(),
+    });
 
     renderLogin();
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
-      target: { value: 'password' },
-    });
-    fireEvent.click(screen.getByText('entrar'));
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/');
-      expect(localStorage.getItem('token')).toBe('fake-token');
-      expect(localStorage.getItem('refreshToken')).toBe('fake-refresh');
     });
   });
 
@@ -74,13 +88,5 @@ describe('Login', () => {
     renderLogin();
     fireEvent.click(screen.getByText('☾'));
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-  });
-
-  it('should redirect to / if already logged in', async () => {
-    localStorage.setItem('token', 'existing-token');
-    renderLogin();
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/');
-    });
   });
 });

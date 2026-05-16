@@ -1,22 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 
 export const Login = () => {
   const [password, setPassword] = useState('');
-  const { login, isLoading, error } = useAuth();
+  const { login, isLoading, error, isAuthenticated } = useAuth();
   const { isDark, toggle } = useTheme();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (localStorage.getItem('token')) navigate('/');
-  }, [navigate]);
+    if (isAuthenticated) navigate('/');
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await login(password);
-    if (localStorage.getItem('token')) navigate('/');
   };
 
   return (
@@ -27,7 +26,7 @@ export const Login = () => {
             <h1 className="text-3xl font-bold tracking-tight text-primary">
               notin
             </h1>
-            <p className="text-sm mt-1 text-muted">seu espaço pessoal</p>
+            <p className="text-sm mt-1 text-muted">MEU espaço pessoal</p>
           </div>
           <button
             type="button"

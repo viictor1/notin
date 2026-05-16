@@ -2,14 +2,20 @@ import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
+let accessToken: string | null = null;
+
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+
 export const api = axios.create({
   baseURL: BASE_URL,
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });
@@ -33,15 +39,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401) {
-      const refreshToken = localStorage.getItem('refreshToken');
-
-      if (!refreshToken) {
-        localStorage.clear();
-        window.location.href = '/login';
-        return Promise.reject(error);
-      }
-
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh') &&
+      !originalRequest.url?.includes('/auth/login')
+    ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -51,20 +54,22 @@ api.interceptors.response.use(
         });
       }
 
+      originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {
-          refreshToken,
-        });
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('refreshToken', data.refreshToken);
+        const { data } = await axios.post(
+          `${BASE_URL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
+        setAccessToken(data.token);
         processQueue(null, data.token);
         originalRequest.headers.Authorization = `Bearer ${data.token}`;
         return api(originalRequest);
       } catch (err) {
         processQueue(err, null);
-        localStorage.clear();
+        setAccessToken(null);
         window.location.href = '/login';
         return Promise.reject(err);
       } finally {
@@ -75,9 +80,10 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
 export const authService = {
   login: (password: string) => api.post('/auth/login', { password }),
+  logout: () => api.post('/auth/logout'),
+  refresh: () => api.post('/auth/refresh', {}, { withCredentials: true }),
 };
 
 export const notesService = {

@@ -14,6 +14,7 @@ export type Env = {
   OWNER_ID: string;
   DATABASE_URL: string;
   OWNER_PASSWORD: string;
+  ENVIRONMENT: string;
 };
 
 export type Variables = {

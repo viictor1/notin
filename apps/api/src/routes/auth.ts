@@ -5,21 +5,26 @@ import { parseBody } from '../utils/request';
 
 export const authRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 
+const COOKIE_NAME = 'refresh_token';
+
+const getCookieOptions = (env: Env) => {
+  const isDev = env.ENVIRONMENT === 'development';
+  return isDev
+    ? `HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`
+    : `HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=2592000`;
+};
+
 authRouter.post('/login', async (c) => {
   const body = await parseBody<{ password?: string }>(c);
   if (!body) return c.json({ error: 'Invalid JSON' }, 400);
 
   const { password } = body;
-
-  if (!password) {
-    return c.json({ error: 'Password required' }, 400);
-  }
-
-  if (password !== c.env.OWNER_PASSWORD) {
+  if (!password) return c.json({ error: 'Password required' }, 400);
+  if (password !== c.env.OWNER_PASSWORD)
     return c.json({ error: 'Invalid credentials' }, 401);
-  }
 
   const secret = new TextEncoder().encode(c.env.JWT_SECRET);
+
   const token = await new SignJWT({ sub: c.env.OWNER_ID })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('15m')
@@ -33,26 +38,29 @@ authRouter.post('/login', async (c) => {
     .setExpirationTime('30d')
     .sign(secret);
 
-  return c.json({ token, refreshToken });
+  c.header(
+    'Set-Cookie',
+    `${COOKIE_NAME}=${refreshToken}; ${getCookieOptions(c.env)}`
+  );
+  return c.json({ token });
 });
 
 authRouter.post('/refresh', async (c) => {
-  const body = await parseBody<{ refreshToken?: string }>(c);
-  if (!body) return c.json({ error: 'Invalid JSON' }, 400);
+  const cookieHeader = c.req.header('Cookie') ?? '';
+  const refreshToken = cookieHeader
+    .split(';')
+    .map((s) => s.trim())
+    .find((s) => s.startsWith(`${COOKIE_NAME}=`))
+    ?.split('=')[1];
 
-  const { refreshToken } = body;
-
-  if (!refreshToken) {
-    return c.json({ error: 'Refresh token required' }, 400);
-  }
+  if (!refreshToken) return c.json({ error: 'Refresh token required' }, 401);
 
   try {
     const secret = new TextEncoder().encode(c.env.JWT_SECRET);
     const { payload } = await jwtVerify(refreshToken, secret);
 
-    if (payload.type !== 'refresh') {
+    if (payload.type !== 'refresh')
       return c.json({ error: 'Invalid token type' }, 401);
-    }
 
     const token = await new SignJWT({ sub: payload.sub })
       .setProtectedHeader({ alg: 'HS256' })
@@ -67,8 +75,22 @@ authRouter.post('/refresh', async (c) => {
       .setExpirationTime('30d')
       .sign(secret);
 
-    return c.json({ token, refreshToken: newRefreshToken });
+    c.header(
+      'Set-Cookie',
+      `${COOKIE_NAME}=${newRefreshToken}; ${getCookieOptions(c.env)}`
+    );
+    return c.json({ token });
   } catch {
     return c.json({ error: 'Invalid refresh token' }, 401);
   }
+});
+
+authRouter.post('/logout', (c) => {
+  const isDev = c.env.ENVIRONMENT === 'development';
+  const clearOptions = isDev
+    ? `HttpOnly; SameSite=Lax; Path=/; Max-Age=0`
+    : `HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
+
+  c.header('Set-Cookie', `${COOKIE_NAME}=; ${clearOptions}`);
+  return c.json({ success: true });
 });

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notesService } from '../services/api';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import type { Note } from '../types';
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -38,7 +38,7 @@ export const Notes = () => {
       const { data } = await notesService.list();
       setNotes(data);
     } catch {
-      setError('erro ao carregar notas'); // precisa ter: const [error, setError] = useState('')
+      setError('erro ao carregar notas');
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +140,7 @@ export const Notes = () => {
           {isLoading ? (
             <p className="p-4 text-xs text-muted">carregando...</p>
           ) : error ? (
-            <p className="p-4 text-xs text-red-500">{error}</p> // ← add
+            <p className="p-4 text-xs text-red-500">{error}</p>
           ) : notes.length === 0 ? (
             <p className="p-4 text-xs text-muted">nenhuma nota ainda</p>
           ) : (

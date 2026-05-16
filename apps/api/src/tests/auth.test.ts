@@ -22,10 +22,15 @@ describe('POST /auth/login', () => {
       },
       testEnv
     );
+
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { token: string; refreshToken: string };
+
+    const body = (await res.json()) as { token: string };
     expect(body.token).toBeDefined();
-    expect(body.refreshToken).toBeDefined();
+
+    const setCookieHeader = res.headers.get('Set-Cookie');
+    expect(setCookieHeader).toBeDefined();
+    expect(setCookieHeader).toContain('refresh_token=');
   });
 
   it('should return 401 on invalid credentials', async () => {
@@ -61,29 +66,32 @@ describe('POST /auth/refresh', () => {
       '/auth/login',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: testEnv.OWNER_PASSWORD }),
+        headers: new Headers({ 'Content-Type': 'application/json' }),
       },
       testEnv
     );
-    const { refreshToken } = (await loginRes.json()) as {
-      refreshToken: string;
-    };
+
+    const cookie = loginRes.headers.get('Set-Cookie');
 
     const res = await app.request(
       '/auth/refresh',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        headers: new Headers({
+          Cookie: cookie || '',
+        }),
       },
       testEnv
     );
+
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { token: string; refreshToken: string };
+
+    const body = (await res.json()) as { token: string };
     expect(body.token).toBeDefined();
-    expect(body.refreshToken).toBeDefined();
-    expect(body.refreshToken).not.toBe(refreshToken);
+
+    const newCookie = res.headers.get('Set-Cookie');
+    expect(newCookie).toContain('refresh_token=');
   });
 
   it('should return 401 on invalid refresh token', async () => {

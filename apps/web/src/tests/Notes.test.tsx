@@ -4,11 +4,25 @@ import { MemoryRouter } from 'react-router-dom';
 import { Notes } from '../pages/Notes';
 
 const mockNavigate = vi.fn();
+const mockLogout = vi.fn();
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return { ...actual, useNavigate: () => mockNavigate };
 });
+
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({ logout: mockLogout }),
+}));
+
+vi.mock('../services/api', () => ({
+  notesService: {
+    list: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
 
 const mockNotes = [
   {
@@ -27,15 +41,6 @@ const mockNotes = [
   },
 ];
 
-vi.mock('../services/api', () => ({
-  notesService: {
-    list: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-  },
-}));
-
 const renderNotes = () =>
   render(
     <MemoryRouter>
@@ -46,7 +51,6 @@ const renderNotes = () =>
 describe('Notes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    localStorage.setItem('token', 'fake-token');
     const { notesService } = await import('../services/api');
     vi.mocked(notesService.list).mockResolvedValue({ data: mockNotes } as any);
   });
@@ -107,7 +111,6 @@ describe('Notes', () => {
 
     renderNotes();
     await waitFor(() => screen.getByText('nota um'));
-
     fireEvent.click(screen.getByText('+ nova nota'));
     fireEvent.change(screen.getByPlaceholderText('sem título'), {
       target: { value: 'nova nota' },
@@ -128,10 +131,8 @@ describe('Notes', () => {
   it('should show confirm modal on delete', async () => {
     renderNotes();
     await waitFor(() => screen.getByText('nota um'));
-
     const deleteButtons = screen.getAllByText('excluir');
     fireEvent.click(deleteButtons[0]);
-
     expect(
       screen.getByText('Tem certeza que deseja excluir esta nota?')
     ).toBeInTheDocument();
@@ -140,10 +141,8 @@ describe('Notes', () => {
   it('should cancel delete on ESC', async () => {
     renderNotes();
     await waitFor(() => screen.getByText('nota um'));
-
     const deleteButtons = screen.getAllByText('excluir');
     fireEvent.click(deleteButtons[0]);
-
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(
       screen.queryByText('Tem certeza que deseja excluir esta nota?')
@@ -158,7 +157,6 @@ describe('Notes', () => {
 
     renderNotes();
     await waitFor(() => screen.getByText('nota um'));
-
     const deleteButtons = screen.getAllByText('excluir');
     fireEvent.click(deleteButtons[0]);
     fireEvent.click(
@@ -174,9 +172,11 @@ describe('Notes', () => {
     renderNotes();
     await waitFor(() => screen.getByText('nota um'));
     fireEvent.click(screen.getByText('sair'));
-    expect(mockNavigate).toHaveBeenCalledWith('/login');
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('refreshToken')).toBeNull();
+
+    await waitFor(() => {
+      expect(mockLogout).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith('/login');
+    });
   });
 
   it('should update a note', async () => {
@@ -187,7 +187,6 @@ describe('Notes', () => {
 
     renderNotes();
     await waitFor(() => screen.getByText('nota um'));
-
     fireEvent.click(screen.getByText('nota um'));
     fireEvent.change(screen.getByDisplayValue('nota um'), {
       target: { value: 'nota editada' },
@@ -208,7 +207,6 @@ describe('Notes', () => {
     vi.mocked(notesService.list).mockRejectedValueOnce(new Error('500'));
 
     renderNotes();
-
     await waitFor(() => {
       expect(screen.getByText(/erro/i)).toBeInTheDocument();
     });
@@ -220,7 +218,6 @@ describe('Notes', () => {
 
     renderNotes();
     await waitFor(() => screen.getByText('nota um'));
-
     fireEvent.click(screen.getByText('+ nova nota'));
     fireEvent.change(screen.getByPlaceholderText('comece a escrever...'), {
       target: { value: 'conteudo' },
@@ -250,7 +247,6 @@ describe('Notes', () => {
 
     renderNotes();
     await waitFor(() => screen.getByText('nota um'));
-
     fireEvent.click(screen.getByText('+ nova nota'));
     fireEvent.change(screen.getByPlaceholderText('comece a escrever...'), {
       target: { value: 'conteudo' },
@@ -277,7 +273,6 @@ describe('Notes', () => {
 
     renderNotes();
     await waitFor(() => screen.getByText('nota um'));
-
     const deleteButtons = screen.getAllByText('excluir');
     fireEvent.click(deleteButtons[0]);
     fireEvent.click(
@@ -297,7 +292,6 @@ describe('Notes', () => {
 
     renderNotes();
     await waitFor(() => screen.getByText('nota um'));
-
     const deleteButtons = screen.getAllByText('excluir');
     fireEvent.click(deleteButtons[0]);
     fireEvent.click(
