@@ -5,6 +5,7 @@
     "apps/*"
   ],
   "scripts": {
+    "dev": "npm run dev:api & npm run dev:web",
     "dev:api":    "npm -w apps/api run dev",
     "dev:web":    "npm -w apps/web run dev",
     "deploy:api": "npm -w apps/api run deploy",
