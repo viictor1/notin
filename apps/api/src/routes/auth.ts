@@ -7,11 +7,8 @@ export const authRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 const COOKIE_NAME = 'refresh_token';
 
-const getCookieOptions = (env: Env) => {
-  const isDev = env.ENVIRONMENT === 'development';
-  return isDev
-    ? `HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`
-    : `HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=2592000`;
+const getCookieOptions = () => {
+  return `HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=2592000`;
 };
 
 authRouter.post('/login', async (c) => {
@@ -86,10 +83,7 @@ authRouter.post('/refresh', async (c) => {
 });
 
 authRouter.post('/logout', (c) => {
-  const isDev = c.env.ENVIRONMENT === 'development';
-  const clearOptions = isDev
-    ? `HttpOnly; SameSite=Lax; Path=/; Max-Age=0`
-    : `HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
+  const clearOptions = `HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
 
   c.header('Set-Cookie', `${COOKIE_NAME}=; ${clearOptions}`);
   return c.json({ success: true });

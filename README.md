@@ -10,12 +10,13 @@ Cofre pessoal de notas e arquivos. Acesso exclusivo via autenticação por senha
 - **Auth** — JWT (access token em memória + refresh token via HttpOnly cookie)
 
 ## Estrutura
-notin/
-├── apps/
-│   ├── api/       # REST API (Cloudflare Workers)
-│   └── web/       # Frontend (React)
-└── supabase/
-└── migrations/
+    notin/
+    ├── apps/
+    │   ├── api/       # REST API (Cloudflare Workers)
+    │   └── web/       # Frontend (React)
+    └── supabase/
+        └── migrations/
+
 ## Funcionalidades
 
 - Login por senha
@@ -36,7 +37,6 @@ notin/
 
 ```bash
 cd apps/api
-cp .dev.vars.example .dev.vars  # preenche as variáveis
 npm install
 npm run dev
 ```
@@ -45,7 +45,6 @@ npm run dev
 
 ```bash
 cd apps/web
-cp .env.local.example .env.local  # preenche as variáveis
 npm install
 npm run dev
 ```
@@ -75,7 +74,6 @@ npm run format
 | `ENCRYPTION_KEY` | Chave para encriptação AES-256 (futuro) |
 | `OWNER_ID` | UUID do usuário no Supabase |
 | `OWNER_PASSWORD` | Senha de acesso ao app |
-| `ENVIRONMENT` | `development` ou `production` |
 
 ### Web (`.env.local`)
 
@@ -89,7 +87,7 @@ npm run format
 npm run deploy:api   # deploy da API na Cloudflare
 ```
 
-O frontend é deployado automaticamente via Cloudflare Pages no push para `main`.
+API e frontend são deployados automaticamente via GitHub Actions no push para `main`.
 
 ## Roadmap
 
