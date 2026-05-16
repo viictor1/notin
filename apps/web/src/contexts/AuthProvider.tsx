@@ -50,9 +50,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    await authService.logout();
-    setAccessToken(null);
-    setIsAuthenticated(false);
+    try {
+      await authService.logout();
+    } finally {
+      setAccessToken(null);
+      setIsAuthenticated(false);
+    }
   };
 
   if (isInitializing) {

@@ -28,7 +28,7 @@ notin/
 
 ### Pré-requisitos
 
-- Node.js 22+
+- Node.js 24+
 - Conta na Cloudflare
 - Conta no Supabase
 
