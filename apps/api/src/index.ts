@@ -9,9 +9,18 @@ const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 app.use(
   '*',
   cors({
-    origin: '*',
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: (origin) => {
+      const allowed = [
+        'https://notin-web.pages.dev',
+        'http://localhost:5173',
+        'http://localhost:8787',
+      ];
+      if (!origin || allowed.includes(origin)) return origin ?? allowed[0];
+      return null;
+    },
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   })
 );
 

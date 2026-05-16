@@ -5,8 +5,22 @@
     "apps/*"
   ],
   "scripts": {
-    "dev:api": "npm -w apps/api run dev",
-    "test:api": "npm -w apps/api run test",
-    "deploy:api": "npm -w apps/api run deploy"
+    "dev": "npm run dev:api & npm run dev:web",
+    "dev:api":    "npm -w apps/api run dev",
+    "dev:web":    "npm -w apps/web run dev",
+    "deploy:api": "npm -w apps/api run deploy",
+    "lint":       "eslint .",
+    "format":     "prettier --write \"apps/**/src/**/*.{ts,tsx}\"",
+    "test:api":   "npm -w apps/api run test",
+    "test:web":   "npm -w apps/web run test",
+    "test":       "npm run test:api && npm run test:web"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
+    "eslint": "^10.4.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "prettier": "^3.8.3"
   }
 }

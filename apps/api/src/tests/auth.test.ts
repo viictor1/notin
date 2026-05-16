@@ -8,8 +8,7 @@ const testEnv = {
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY!,
   OWNER_ID: process.env.OWNER_ID!,
   DATABASE_URL: process.env.DATABASE_URL!,
-  TEST_EMAIL: process.env.TEST_EMAIL!,
-  TEST_PASSWORD: process.env.TEST_PASSWORD!,
+  OWNER_PASSWORD: process.env.OWNER_PASSWORD!,
 };
 
 describe('POST /auth/login', () => {
@@ -19,18 +18,19 @@ describe('POST /auth/login', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: testEnv.TEST_EMAIL,
-          password: testEnv.TEST_PASSWORD,
-        }),
+        body: JSON.stringify({ password: testEnv.OWNER_PASSWORD }),
       },
       testEnv
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { token: string; refreshToken: string };
+
+    const body = (await res.json()) as { token: string };
     expect(body.token).toBeDefined();
-    expect(body.refreshToken).toBeDefined();
+
+    const setCookieHeader = res.headers.get('Set-Cookie');
+    expect(setCookieHeader).toBeDefined();
+    expect(setCookieHeader).toContain('refresh_token=');
   });
 
   it('should return 401 on invalid credentials', async () => {
@@ -39,14 +39,10 @@ describe('POST /auth/login', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'wrong@email.com',
-          password: 'wrongpassword',
-        }),
+        body: JSON.stringify({ password: 'wrongpassword' }),
       },
       testEnv
     );
-
     expect(res.status).toBe(401);
   });
 
@@ -56,11 +52,10 @@ describe('POST /auth/login', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'test@test.com' }),
+        body: JSON.stringify({}),
       },
       testEnv
     );
-
     expect(res.status).toBe(400);
   });
 });
@@ -71,32 +66,32 @@ describe('POST /auth/refresh', () => {
       '/auth/login',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: testEnv.TEST_EMAIL,
-          password: testEnv.TEST_PASSWORD,
-        }),
+        body: JSON.stringify({ password: testEnv.OWNER_PASSWORD }),
+        headers: new Headers({ 'Content-Type': 'application/json' }),
       },
       testEnv
     );
 
-    const { refreshToken } = (await loginRes.json()) as {
-      refreshToken: string;
-    };
+    const cookie = loginRes.headers.get('Set-Cookie');
 
     const res = await app.request(
       '/auth/refresh',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        headers: new Headers({
+          Cookie: cookie || '',
+        }),
       },
       testEnv
     );
 
     expect(res.status).toBe(200);
+
     const body = (await res.json()) as { token: string };
     expect(body.token).toBeDefined();
+
+    const newCookie = res.headers.get('Set-Cookie');
+    expect(newCookie).toContain('refresh_token=');
   });
 
   it('should return 401 on invalid refresh token', async () => {
@@ -109,7 +104,6 @@ describe('POST /auth/refresh', () => {
       },
       testEnv
     );
-
     expect(res.status).toBe(401);
   });
 });

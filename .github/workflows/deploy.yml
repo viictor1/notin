@@ -19,7 +19,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
           cache-dependency-path: apps/api/package-lock.json
 
@@ -34,8 +34,7 @@ jobs:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
           OWNER_ID: ${{ secrets.OWNER_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
-          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
 
   deploy:
     name: Deploy
@@ -51,7 +50,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
 
       - run: npm ci
