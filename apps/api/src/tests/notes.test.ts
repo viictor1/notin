@@ -30,12 +30,6 @@ beforeAll(async () => {
   );
 
   const body = (await res.json()) as { token: string };
-
-  // decodifica o payload sem verificar assinatura
-  if (body.token) {
-    const payload = JSON.parse(atob(body.token.split('.')[1]));
-  }
-
   token = body.token;
 });
 
