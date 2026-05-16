@@ -213,4 +213,99 @@ describe('Notes', () => {
       expect(screen.getByText(/erro/i)).toBeInTheDocument();
     });
   });
+
+  it('should show error when save fails', async () => {
+    const { notesService } = await import('../services/api');
+    vi.mocked(notesService.create).mockRejectedValueOnce(new Error('500'));
+
+    renderNotes();
+    await waitFor(() => screen.getByText('nota um'));
+
+    fireEvent.click(screen.getByText('+ nova nota'));
+    fireEvent.change(screen.getByPlaceholderText('comece a escrever...'), {
+      target: { value: 'conteudo' },
+    });
+    fireEvent.click(screen.getByText('salvar'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Erro ao salvar. Tente novamente.')
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('should clear save error on new save attempt', async () => {
+    const { notesService } = await import('../services/api');
+    vi.mocked(notesService.create)
+      .mockRejectedValueOnce(new Error('500'))
+      .mockResolvedValueOnce({
+        data: {
+          id: '3',
+          title: '',
+          content: 'conteudo',
+          created_at: '2026-01-03T00:00:00Z',
+          updated_at: '2026-01-03T00:00:00Z',
+        },
+      } as any);
+
+    renderNotes();
+    await waitFor(() => screen.getByText('nota um'));
+
+    fireEvent.click(screen.getByText('+ nova nota'));
+    fireEvent.change(screen.getByPlaceholderText('comece a escrever...'), {
+      target: { value: 'conteudo' },
+    });
+
+    fireEvent.click(screen.getByText('salvar'));
+    await waitFor(() => {
+      expect(
+        screen.getByText('Erro ao salvar. Tente novamente.')
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('salvar'));
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Erro ao salvar. Tente novamente.')
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('should show error when delete fails', async () => {
+    const { notesService } = await import('../services/api');
+    vi.mocked(notesService.delete).mockRejectedValueOnce(new Error('500'));
+
+    renderNotes();
+    await waitFor(() => screen.getByText('nota um'));
+
+    const deleteButtons = screen.getAllByText('excluir');
+    fireEvent.click(deleteButtons[0]);
+    fireEvent.click(
+      screen.getByText('excluir', { selector: 'button.btn-primary' })
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Erro ao excluir nota. Tente novamente.')
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('should keep note in list when delete fails', async () => {
+    const { notesService } = await import('../services/api');
+    vi.mocked(notesService.delete).mockRejectedValueOnce(new Error('500'));
+
+    renderNotes();
+    await waitFor(() => screen.getByText('nota um'));
+
+    const deleteButtons = screen.getAllByText('excluir');
+    fireEvent.click(deleteButtons[0]);
+    fireEvent.click(
+      screen.getByText('excluir', { selector: 'button.btn-primary' })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('nota um')).toBeInTheDocument();
+    });
+  });
 });

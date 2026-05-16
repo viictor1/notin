@@ -80,8 +80,10 @@ describe('POST /auth/refresh', () => {
       testEnv
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { token: string };
+    const body = (await res.json()) as { token: string; refreshToken: string };
     expect(body.token).toBeDefined();
+    expect(body.refreshToken).toBeDefined();
+    expect(body.refreshToken).not.toBe(refreshToken);
   });
 
   it('should return 401 on invalid refresh token', async () => {

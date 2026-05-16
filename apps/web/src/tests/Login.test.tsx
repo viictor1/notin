@@ -76,9 +76,11 @@ describe('Login', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   });
 
-  it('should redirect to / if already logged in', () => {
+  it('should redirect to / if already logged in', async () => {
     localStorage.setItem('token', 'existing-token');
     renderLogin();
-    expect(mockNavigate).toHaveBeenCalledWith('/');
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/');
+    });
   });
 });

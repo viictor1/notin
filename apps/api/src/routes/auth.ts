@@ -1,11 +1,15 @@
 import { Hono } from 'hono';
 import { SignJWT, jwtVerify } from 'jose';
 import type { Env, Variables } from '../types';
+import { parseBody } from '../utils/request';
 
 export const authRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 authRouter.post('/login', async (c) => {
-  const { password } = await c.req.json();
+  const body = await parseBody<{ password?: string }>(c);
+  if (!body) return c.json({ error: 'Invalid JSON' }, 400);
+
+  const { password } = body;
 
   if (!password) {
     return c.json({ error: 'Password required' }, 400);
@@ -33,7 +37,10 @@ authRouter.post('/login', async (c) => {
 });
 
 authRouter.post('/refresh', async (c) => {
-  const { refreshToken } = await c.req.json();
+  const body = await parseBody<{ refreshToken?: string }>(c);
+  if (!body) return c.json({ error: 'Invalid JSON' }, 400);
+
+  const { refreshToken } = body;
 
   if (!refreshToken) {
     return c.json({ error: 'Refresh token required' }, 400);
@@ -52,7 +59,15 @@ authRouter.post('/refresh', async (c) => {
       .setExpirationTime('15m')
       .sign(secret);
 
-    return c.json({ token });
+    const newRefreshToken = await new SignJWT({
+      sub: payload.sub,
+      type: 'refresh',
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('30d')
+      .sign(secret);
+
+    return c.json({ token, refreshToken: newRefreshToken });
   } catch {
     return c.json({ error: 'Invalid refresh token' }, 401);
   }

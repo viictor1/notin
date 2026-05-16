@@ -19,6 +19,7 @@ export const Notes = () => {
   const navigate = useNavigate();
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchNotes();
@@ -67,10 +68,11 @@ export const Notes = () => {
   const save = async () => {
     if (!content.trim()) return;
     setIsSaving(true);
+    setSaveError(null);
     try {
       if (isNew) {
         const { data } = await notesService.create(title || null, content);
-        setNotes([data, ...notes]);
+        setNotes((prev) => [data, ...prev]);
         setSelected(data);
         setIsNew(false);
       } else if (selected) {
@@ -79,18 +81,24 @@ export const Notes = () => {
           title || null,
           content
         );
-        setNotes(notes.map((n) => (n.id === data.id ? data : n)));
+        setNotes((prev) => prev.map((n) => (n.id === data.id ? data : n)));
         setSelected(data);
       }
+    } catch {
+      setSaveError('Erro ao salvar. Tente novamente.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const deleteNote = async (id: string) => {
-    await notesService.delete(id);
-    setNotes(notes.filter((n) => n.id !== id));
-    if (selected?.id === id) clearSelection();
+    try {
+      await notesService.delete(id);
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+      if (selected?.id === id) clearSelection();
+    } catch {
+      setError('Erro ao excluir nota. Tente novamente.');
+    }
   };
 
   const handleLogout = () => {
@@ -178,6 +186,9 @@ export const Notes = () => {
                   placeholder="sem título"
                   className="bg-transparent text-base font-medium text-app outline-none flex-1 placeholder:text-muted"
                 />
+                {saveError && (
+                  <p className="text-xs text-red-500 mr-3">{saveError}</p>
+                )}
                 <button
                   onClick={save}
                   disabled={isSaving || !content.trim()}
@@ -212,8 +223,8 @@ export const Notes = () => {
       {confirmId && (
         <ConfirmModal
           message="Tem certeza que deseja excluir esta nota?"
-          onConfirm={() => {
-            deleteNote(confirmId);
+          onConfirm={async () => {
+            await deleteNote(confirmId);
             setConfirmId(null);
           }}
           onCancel={() => setConfirmId(null)}

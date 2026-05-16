@@ -29,16 +29,25 @@ export const Login = () => {
             </h1>
             <p className="text-sm mt-1 text-muted">seu espaço pessoal</p>
           </div>
-          <button onClick={toggle} className="btn-ghost mt-1 text-lg">
+          <button
+            type="button"
+            aria-label={isDark ? 'Ativar tema claro' : 'Ativar tema escuro'}
+            onClick={toggle}
+            className="btn-ghost mt-1 text-lg"
+          >
             {isDark ? '☀' : '☾'}
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-xs font-medium block mb-1 text-app">
+            <label
+              htmlFor="password"
+              className="text-xs font-medium block mb-1 text-app"
+            >
               Senha
             </label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

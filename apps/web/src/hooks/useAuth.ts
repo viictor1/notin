@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { authService } from '../services/api';
+import axios from 'axios';
 
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
@@ -16,8 +17,12 @@ export const useAuth = () => {
       localStorage.setItem('token', data.token);
       localStorage.setItem('refreshToken', data.refreshToken);
       setIsAuthenticated(true);
-    } catch {
-      setError('Senha incorreta');
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        setError('Senha incorreta');
+      } else {
+        setError('Erro ao conectar. Tente novamente.');
+      }
     } finally {
       setIsLoading(false);
     }
