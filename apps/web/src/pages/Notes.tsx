@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import type { Note } from '../types';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { Editor } from '../components/Editor';
 
 export const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -197,11 +198,10 @@ export const Notes = () => {
                   {isSaving ? 'salvando...' : 'salvar'}
                 </button>
               </div>
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
+              <Editor
+                content={content}
+                onChange={setContent}
                 placeholder="comece a escrever..."
-                className="flex-1 bg-transparent text-app text-sm p-6 outline-none resize-none leading-relaxed placeholder:text-muted"
               />
             </>
           ) : (
