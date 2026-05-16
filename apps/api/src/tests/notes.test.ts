@@ -7,7 +7,6 @@ const testEnv = {
   JWT_SECRET: process.env.JWT_SECRET!,
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY!,
   OWNER_ID: process.env.OWNER_ID!,
-  DATABASE_URL: process.env.DATABASE_URL!,
   OWNER_PASSWORD: process.env.OWNER_PASSWORD!,
 };
 
