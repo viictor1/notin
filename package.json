@@ -1,0 +1,12 @@
+{
+  "name": "personal-vault",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm -w apps/api run dev",
+    "test:api": "npm -w apps/api run test",
+    "deploy:api": "npm -w apps/api run deploy"
+  }
+}
