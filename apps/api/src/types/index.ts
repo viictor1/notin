@@ -13,8 +13,7 @@ export type Env = {
   ENCRYPTION_KEY: string;
   OWNER_ID: string;
   DATABASE_URL: string;
-  TEST_EMAIL: string;
-  TEST_PASSWORD: string;
+  OWNER_PASSWORD: string;
 };
 
 export type Variables = {

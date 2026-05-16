@@ -5,6 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
   {
+    ignores: ['apps/web/src/tests/**', 'apps/api/.wrangler/**'],
+  },
+  {
     files: ['apps/api/src/**/*.ts'],
     languageOptions: { parser: tsParser },
     plugins: {
@@ -18,7 +21,6 @@ export default [
   },
   {
     files: ['apps/web/src/**/*.{ts,tsx}'],
-    ignores: ['apps/web/src/tests/**'],
     languageOptions: { parser: tsParser },
     plugins: {
       '@typescript-eslint': tsPlugin,

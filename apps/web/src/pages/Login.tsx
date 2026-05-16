@@ -4,24 +4,19 @@ import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 
 export const Login = () => {
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, isLoading, error } = useAuth();
   const { isDark, toggle } = useTheme();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (localStorage.getItem('token')) {
-      navigate('/');
-    }
+    if (localStorage.getItem('token')) navigate('/');
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(email, password);
-    if (localStorage.getItem('token')) {
-      navigate('/');
-    }
+    await login(password);
+    if (localStorage.getItem('token')) navigate('/');
   };
 
   return (
@@ -38,22 +33,7 @@ export const Login = () => {
             {isDark ? '☀' : '☾'}
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs font-medium block mb-1 text-app">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input-app"
-              placeholder="you@email.com"
-              required
-            />
-          </div>
-
           <div>
             <label className="text-xs font-medium block mb-1 text-app">
               Senha
@@ -67,9 +47,7 @@ export const Login = () => {
               required
             />
           </div>
-
           {error && <p className="text-xs text-primary">{error}</p>}
-
           <button
             type="submit"
             disabled={isLoading}

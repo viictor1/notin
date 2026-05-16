@@ -34,8 +34,7 @@ jobs:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
           OWNER_ID: ${{ secrets.OWNER_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
-          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
 
   deploy:
     name: Deploy

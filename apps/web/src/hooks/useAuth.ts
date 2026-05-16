@@ -8,16 +8,16 @@ export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const login = async (email: string, password: string) => {
+  const login = async (password: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const { data } = await authService.login(email, password);
+      const { data } = await authService.login(password);
       localStorage.setItem('token', data.token);
       localStorage.setItem('refreshToken', data.refreshToken);
       setIsAuthenticated(true);
     } catch {
-      setError('Email ou senha incorretos');
+      setError('Senha incorreta');
     } finally {
       setIsLoading(false);
     }

@@ -1,36 +1,30 @@
 import { Hono } from 'hono';
 import { SignJWT, jwtVerify } from 'jose';
-import { createSupabaseClient } from '../services/supabase';
 import type { Env, Variables } from '../types';
 
 export const authRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 authRouter.post('/login', async (c) => {
-  const { email, password } = await c.req.json();
+  const { password } = await c.req.json();
 
-  if (!email || !password) {
-    return c.json({ error: 'Email and password required' }, 400);
+  if (!password) {
+    return c.json({ error: 'Password required' }, 400);
   }
 
-  const supabase = createSupabaseClient(c.env);
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error || !data.user) {
+  if (password !== c.env.OWNER_PASSWORD) {
     return c.json({ error: 'Invalid credentials' }, 401);
   }
 
   const secret = new TextEncoder().encode(c.env.JWT_SECRET);
-
-  const token = await new SignJWT({ sub: data.user.id })
+  const token = await new SignJWT({ sub: c.env.OWNER_ID })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('15m')
     .sign(secret);
 
-  const refreshToken = await new SignJWT({ sub: data.user.id, type: 'refresh' })
+  const refreshToken = await new SignJWT({
+    sub: c.env.OWNER_ID,
+    type: 'refresh',
+  })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('30d')
     .sign(secret);

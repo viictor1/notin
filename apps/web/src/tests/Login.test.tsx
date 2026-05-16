@@ -32,27 +32,22 @@ describe('Login', () => {
 
   it('should render login form', () => {
     renderLogin();
-    expect(screen.getByPlaceholderText('you@email.com')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
     expect(screen.getByText('entrar')).toBeInTheDocument();
   });
 
-  it('should show error on invalid credentials', async () => {
+  it('should show error on invalid password', async () => {
     const { authService } = await import('../services/api');
     vi.mocked(authService.login).mockRejectedValueOnce(new Error('401'));
 
     renderLogin();
-
-    fireEvent.change(screen.getByPlaceholderText('you@email.com'), {
-      target: { value: 'wrong@email.com' },
-    });
     fireEvent.change(screen.getByPlaceholderText('••••••••'), {
       target: { value: 'wrongpassword' },
     });
     fireEvent.click(screen.getByText('entrar'));
 
     await waitFor(() => {
-      expect(screen.getByText('Email ou senha incorretos')).toBeInTheDocument();
+      expect(screen.getByText('Senha incorreta')).toBeInTheDocument();
     });
   });
 
@@ -63,10 +58,6 @@ describe('Login', () => {
     } as any);
 
     renderLogin();
-
-    fireEvent.change(screen.getByPlaceholderText('you@email.com'), {
-      target: { value: 'test@email.com' },
-    });
     fireEvent.change(screen.getByPlaceholderText('••••••••'), {
       target: { value: 'password' },
     });
@@ -81,8 +72,7 @@ describe('Login', () => {
 
   it('should toggle dark mode', () => {
     renderLogin();
-    const toggle = screen.getByText('☾');
-    fireEvent.click(toggle);
+    fireEvent.click(screen.getByText('☾'));
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   });
 

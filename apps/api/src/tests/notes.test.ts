@@ -8,8 +8,7 @@ const testEnv = {
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY!,
   OWNER_ID: process.env.OWNER_ID!,
   DATABASE_URL: process.env.DATABASE_URL!,
-  TEST_EMAIL: process.env.TEST_EMAIL!,
-  TEST_PASSWORD: process.env.TEST_PASSWORD!,
+  OWNER_PASSWORD: process.env.OWNER_PASSWORD!,
 };
 
 let token: string;
@@ -21,10 +20,7 @@ beforeAll(async () => {
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: testEnv.TEST_EMAIL,
-        password: testEnv.TEST_PASSWORD,
-      }),
+      body: JSON.stringify({ password: testEnv.OWNER_PASSWORD }),
     },
     testEnv
   );
