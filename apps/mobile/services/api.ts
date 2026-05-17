@@ -72,7 +72,6 @@ api.interceptors.response.use(
             ...(originalRequest.headers ?? {}),
             Authorization: `Bearer ${token}`,
           };
-          return;
           return api(originalRequest);
         });
       }
