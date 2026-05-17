@@ -102,7 +102,7 @@ authRouter.post('/refresh', async (c) => {
       'Set-Cookie',
       `${COOKIE_NAME}=${newRefreshToken}; ${getCookieOptions()}`
     );
-    return c.json({ accessToken: token, refreshToken });
+    return c.json({ accessToken: token, refreshToken: newRefreshToken });
   } catch {
     return c.json({ error: 'Invalid refresh token' }, 401);
   }

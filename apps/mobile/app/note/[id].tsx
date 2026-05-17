@@ -27,11 +27,17 @@ export default function NoteScreen() {
 
   useEffect(() => {
     if (isNew) return;
-    notesService.get(id).then(({ data }) => {
-      setTitle(data.title ?? '');
-      setContent(data.content ?? '');
-      setLoading(false);
-    });
+    notesService
+      .get(id)
+      .then(({ data }) => {
+        setTitle(data.title ?? '');
+        setContent(data.content ?? '');
+      })
+      .catch(() => {
+        Alert.alert('Erro', 'Não foi possível carregar a nota.');
+        router.back();
+      })
+      .finally(() => setLoading(false));
   }, [id, isNew]);
 
   const save = async () => {
@@ -61,8 +67,12 @@ export default function NoteScreen() {
           text: 'Excluir',
           style: 'destructive',
           onPress: async () => {
-            await notesService.delete(id);
-            router.back();
+            try {
+              await notesService.delete(id);
+              router.back();
+            } catch {
+              Alert.alert('Erro', 'Não foi possível excluir a nota.');
+            }
           },
         },
       ]

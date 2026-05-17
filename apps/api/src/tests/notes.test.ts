@@ -24,7 +24,10 @@ beforeAll(async () => {
     testEnv
   );
 
-  const body = (await res.json()) as { accessToken: string };
+  const body = (await res.json()) as {
+    accessToken: string;
+    refreshToken: string;
+  };
   token = body.accessToken;
 });
 

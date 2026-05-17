@@ -21,8 +21,14 @@ export function useAuth() {
       setAccessToken(data.accessToken);
       await saveRefreshToken(data.refreshToken);
       router.replace('/notes');
-    } catch {
-      setError('Senha incorreta');
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response
+        ?.status;
+      if (status === 401) {
+        setError('Senha incorreta');
+      } else {
+        setError('Erro ao conectar. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }

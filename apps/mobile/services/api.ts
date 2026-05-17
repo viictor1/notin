@@ -4,6 +4,10 @@ import { router } from 'expo-router';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
+if (!BASE_URL) {
+  throw new Error('EXPO_PUBLIC_API_URL não definida');
+}
+
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
 let accessToken: string | null = null;
@@ -50,6 +54,9 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
 
     if (
       error.response?.status === 401 &&
@@ -61,7 +68,11 @@ api.interceptors.response.use(
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+          originalRequest.headers = {
+            ...(originalRequest.headers ?? {}),
+            Authorization: `Bearer ${token}`,
+          };
+          return;
           return api(originalRequest);
         });
       }
