@@ -17,6 +17,7 @@ export const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === 'code' && code.length !== 6) return;
     await login(mode === 'password' ? { password } : { code });
   };
 
@@ -42,7 +43,7 @@ export const Login = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label
-              htmlFor="password"
+              htmlFor={mode === 'password' ? 'password' : 'code'}
               className="text-xs font-medium block mb-1 text-app"
             >
               {mode === 'password' ? 'Senha' : 'Código do autenticador'}
@@ -63,6 +64,7 @@ export const Login = () => {
                 type="text"
                 inputMode="numeric"
                 maxLength={6}
+                minLength={6}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                 className="input-app tracking-widest text-center"

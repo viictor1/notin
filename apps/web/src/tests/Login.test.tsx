@@ -135,4 +135,16 @@ describe('Login', () => {
     fireEvent.click(screen.getByText('usar autenticador'));
     expect(screen.getByText('Código inválido')).toBeInTheDocument();
   });
+
+  it('não submete código com menos de 6 dígitos', async () => {
+    renderLogin();
+    fireEvent.click(screen.getByText('usar autenticador'));
+    fireEvent.change(screen.getByPlaceholderText('000000'), {
+      target: { value: '123' },
+    });
+    fireEvent.click(screen.getByText('entrar'));
+    await waitFor(() => {
+      expect(mockLogin).not.toHaveBeenCalled();
+    });
+  });
 });

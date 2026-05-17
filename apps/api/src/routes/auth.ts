@@ -24,8 +24,17 @@ authRouter.post('/login', async (c) => {
     return c.json({ error: 'Invalid credentials' }, 401);
 
   if (code) {
+    if (!c.env.TOTP_SECRET) {
+      return c.json({ error: 'Authenticator not configured' }, 503);
+    }
+    let totpSecret: OTPAuth.Secret;
+    try {
+      totpSecret = OTPAuth.Secret.fromBase32(c.env.TOTP_SECRET);
+    } catch {
+      return c.json({ error: 'Authenticator not configured' }, 503);
+    }
     const totp = new OTPAuth.TOTP({
-      secret: OTPAuth.Secret.fromBase32(c.env.TOTP_SECRET),
+      secret: totpSecret,
       algorithm: 'SHA1',
       digits: 6,
       period: 30,
