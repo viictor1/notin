@@ -30,6 +30,7 @@ jobs:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
           OWNER_ID: ${{ secrets.OWNER_ID }}
           OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
+          TOTP_SECRET: ${{ secrets.TOTP_SECRET }}
 
   test-web:
     name: Test Web
