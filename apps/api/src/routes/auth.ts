@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { SignJWT, jwtVerify } from 'jose';
 import type { Env, Variables } from '../types';
 import { parseBody } from '../utils/request';
+import * as OTPAuth from 'otpauth';
 
 export const authRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -12,13 +13,26 @@ const getCookieOptions = () => {
 };
 
 authRouter.post('/login', async (c) => {
-  const body = await parseBody<{ password?: string }>(c);
+  const body = await parseBody<{ password?: string; code?: string }>(c);
   if (!body) return c.json({ error: 'Invalid JSON' }, 400);
 
-  const { password } = body;
-  if (!password) return c.json({ error: 'Password required' }, 400);
-  if (password !== c.env.OWNER_PASSWORD)
+  const { password, code } = body;
+  if (!password && !code)
+    return c.json({ error: 'Password or code required' }, 400);
+
+  if (password && password !== c.env.OWNER_PASSWORD)
     return c.json({ error: 'Invalid credentials' }, 401);
+
+  if (code) {
+    const totp = new OTPAuth.TOTP({
+      secret: OTPAuth.Secret.fromBase32(c.env.TOTP_SECRET),
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+    });
+    if (totp.validate({ token: code, window: 1 }) === null)
+      return c.json({ error: 'Invalid code' }, 401);
+  }
 
   const secret = new TextEncoder().encode(c.env.JWT_SECRET);
 
@@ -37,7 +51,7 @@ authRouter.post('/login', async (c) => {
 
   c.header(
     'Set-Cookie',
-    `${COOKIE_NAME}=${refreshToken}; ${getCookieOptions(c.env)}`
+    `${COOKIE_NAME}=${refreshToken}; ${getCookieOptions()}`
   );
   return c.json({ token });
 });
@@ -74,7 +88,7 @@ authRouter.post('/refresh', async (c) => {
 
     c.header(
       'Set-Cookie',
-      `${COOKIE_NAME}=${newRefreshToken}; ${getCookieOptions(c.env)}`
+      `${COOKIE_NAME}=${newRefreshToken}; ${getCookieOptions()}`
     );
     return c.json({ token });
   } catch {

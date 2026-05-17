@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import app from '../index';
+import * as OTPAuth from 'otpauth';
 
 const testEnv = {
   SUPABASE_URL: process.env.SUPABASE_URL!,
@@ -8,6 +9,7 @@ const testEnv = {
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY!,
   OWNER_ID: process.env.OWNER_ID!,
   OWNER_PASSWORD: process.env.OWNER_PASSWORD!,
+  TOTP_SECRET: process.env.TOTP_SECRET!,
 };
 
 describe('POST /auth/login', () => {
@@ -21,18 +23,37 @@ describe('POST /auth/login', () => {
       },
       testEnv
     );
-
     expect(res.status).toBe(200);
-
     const body = (await res.json()) as { token: string };
     expect(body.token).toBeDefined();
-
     const setCookieHeader = res.headers.get('Set-Cookie');
     expect(setCookieHeader).toBeDefined();
     expect(setCookieHeader).toContain('refresh_token=');
   });
 
-  it('should return 401 on invalid credentials', async () => {
+  it('should return token on valid totp code', async () => {
+    const totp = new OTPAuth.TOTP({
+      secret: OTPAuth.Secret.fromBase32(testEnv.TOTP_SECRET),
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+    });
+    const code = totp.generate();
+    const res = await app.request(
+      '/auth/login',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      },
+      testEnv
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { token: string };
+    expect(body.token).toBeDefined();
+  });
+
+  it('should return 401 on invalid password', async () => {
     const res = await app.request(
       '/auth/login',
       {
@@ -45,7 +66,20 @@ describe('POST /auth/login', () => {
     expect(res.status).toBe(401);
   });
 
-  it('should return 400 when missing fields', async () => {
+  it('should return 401 on invalid totp code', async () => {
+    const res = await app.request(
+      '/auth/login',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: '000000' }),
+      },
+      testEnv
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it('should return 400 when no credential is provided', async () => {
     const res = await app.request(
       '/auth/login',
       {
@@ -70,9 +104,7 @@ describe('POST /auth/refresh', () => {
       },
       testEnv
     );
-
     const cookie = loginRes.headers.get('Set-Cookie');
-
     const res = await app.request(
       '/auth/refresh',
       {
@@ -83,12 +115,9 @@ describe('POST /auth/refresh', () => {
       },
       testEnv
     );
-
     expect(res.status).toBe(200);
-
     const body = (await res.json()) as { token: string };
     expect(body.token).toBeDefined();
-
     const newCookie = res.headers.get('Set-Cookie');
     expect(newCookie).toContain('refresh_token=');
   });

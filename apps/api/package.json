@@ -15,7 +15,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
     "hono": "^4.12.18",
-    "jose": "^6.2.3"
+    "jose": "^6.2.3",
+    "otpauth": "^9.5.1"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.6",

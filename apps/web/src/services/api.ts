@@ -81,7 +81,8 @@ api.interceptors.response.use(
   }
 );
 export const authService = {
-  login: (password: string) => api.post('/auth/login', { password }),
+  login: (credential: { password: string } | { code: string }) =>
+    api.post('/auth/login', credential),
   logout: () => api.post('/auth/logout'),
   refresh: () => api.post('/auth/refresh', {}, { withCredentials: true }),
 };
