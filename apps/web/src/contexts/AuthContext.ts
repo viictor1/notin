@@ -4,7 +4,8 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (password: string) => Promise<void>;
+  clearError: () => void;
+  login: (credential: { password: string } | { code: string }) => Promise<void>;
   logout: () => Promise<void>;
 }
 

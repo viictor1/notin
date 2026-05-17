@@ -4,13 +4,13 @@ import { authService, setAccessToken } from '../services/api';
 import { AuthContext } from './AuthContext';
 
 const BASE_URL = import.meta.env.VITE_API_URL;
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [isInitializing, setIsInitializing] = useState(true);
+  const clearError = () => setError(null);
 
   useEffect(() => {
     const tryRefresh = async () => {
@@ -31,16 +31,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     tryRefresh();
   }, []);
 
-  const login = async (password: string) => {
+  const login = async (credential: { password: string } | { code: string }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const { data } = await authService.login(password);
+      const { data } = await authService.login(credential);
       setAccessToken(data.token);
       setIsAuthenticated(true);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
-        setError('Senha incorreta');
+        setError('code' in credential ? 'Código inválido' : 'Senha incorreta');
       } else {
         setError('Erro ao conectar. Tente novamente.');
       }
@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, isLoading, error, login, logout }}
+      value={{ isAuthenticated, isLoading, error, clearError, login, logout }}
     >
       {children}
     </AuthContext.Provider>

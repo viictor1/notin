@@ -13,6 +13,7 @@ export type Env = {
   ENCRYPTION_KEY: string;
   OWNER_ID: string;
   OWNER_PASSWORD: string;
+  TOTP_SECRET: string;
 };
 
 export type Variables = {
