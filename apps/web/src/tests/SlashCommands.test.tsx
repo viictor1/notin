@@ -283,8 +283,8 @@ describe('comandos slash', () => {
       const chain = makeChain();
       const editor = { chain: vi.fn().mockReturnValue(chain) };
       const item = commands.find((c: any) => c.title === title);
-      expect(item).toBeDefined();
-      item.command({ editor, range } as any);
+      if (!item) throw new Error(`comando "${title}" não encontrado`);
+      +item.command({ editor, range } as any);
       expect(chain.focus).toHaveBeenCalled();
       expect(chain.deleteRange).toHaveBeenCalledWith(range);
       check(chain);
