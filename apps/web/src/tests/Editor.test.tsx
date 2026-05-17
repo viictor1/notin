@@ -10,7 +10,7 @@ vi.mock('@tiptap/react', () => ({
   )),
 }));
 
-vi.mock('../components/SlashCommands', () => ({
+vi.mock('../components/slashCommands', () => ({
   SlashCommands: { name: 'slashCommands' },
 }));
 

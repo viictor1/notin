@@ -7,6 +7,8 @@ import type { Note } from '../types';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { Editor } from '../components/Editor';
 
+const isContentEmpty = (html: string) => !html.replace(/<[^>]*>/g, '').trim();
+
 export const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [selected, setSelected] = useState<Note | null>(null);
@@ -67,7 +69,7 @@ export const Notes = () => {
   };
 
   const save = async () => {
-    if (!content.trim()) return;
+    if (isContentEmpty(content)) return;
     setIsSaving(true);
     setSaveError(null);
     try {
@@ -192,7 +194,7 @@ export const Notes = () => {
                 )}
                 <button
                   onClick={save}
-                  disabled={isSaving || !content.trim()}
+                  disabled={isSaving || isContentEmpty(content)}
                   className="btn-primary ml-4"
                 >
                   {isSaving ? 'salvando...' : 'salvar'}
