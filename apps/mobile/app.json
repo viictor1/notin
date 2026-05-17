@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "notin",
     "scheme": "notin",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/notin.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -13,14 +13,12 @@
       "backgroundColor": "#ffffff"
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
+      "package": "com.notin.mobile",
       "predictiveBackGestureEnabled": false,
-      "package": "com.notin.mobile"
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#612D53"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
