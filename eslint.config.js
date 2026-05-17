@@ -36,4 +36,19 @@ export default [
       'react-refresh/only-export-components': 'warn',
     },
   },
+  {
+    files: ['apps/mobile/**/*.{ts,tsx}'],
+    languageOptions: { parser: tsParser },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': 'error',
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+    },
+  },
 ]

@@ -24,8 +24,8 @@ describe('POST /auth/login', () => {
       testEnv
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { token: string };
-    expect(body.token).toBeDefined();
+    const body = (await res.json()) as { accessToken: string };
+    expect(body.accessToken).toBeDefined();
     const setCookieHeader = res.headers.get('Set-Cookie');
     expect(setCookieHeader).toBeDefined();
     expect(setCookieHeader).toContain('refresh_token=');
@@ -49,8 +49,8 @@ describe('POST /auth/login', () => {
       testEnv
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { token: string };
-    expect(body.token).toBeDefined();
+    const body = (await res.json()) as { accessToken: string };
+    expect(body.accessToken).toBeDefined();
   });
 
   it('should return 401 on invalid password', async () => {
@@ -116,8 +116,8 @@ describe('POST /auth/refresh', () => {
       testEnv
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { token: string };
-    expect(body.token).toBeDefined();
+    const body = (await res.json()) as { accessToken: string };
+    expect(body.accessToken).toBeDefined();
     const newCookie = res.headers.get('Set-Cookie');
     expect(newCookie).toContain('refresh_token=');
   });

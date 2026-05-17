@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           {},
           { withCredentials: true }
         );
-        setAccessToken(data.token);
+        setAccessToken(data.accessToken);
         setIsAuthenticated(true);
       } catch {
         setIsAuthenticated(false);
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setError(null);
     try {
       const { data } = await authService.login(credential);
-      setAccessToken(data.token);
+      setAccessToken(data.accessToken);
       setIsAuthenticated(true);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {

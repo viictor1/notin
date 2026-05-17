@@ -1,10 +1,10 @@
-import { defineConfig } from 'vitest/config'
-import { config } from 'dotenv'
+import { defineConfig } from 'vitest/config';
+import { config } from 'dotenv';
 
-config({ path: '.dev.vars' })
+config({ path: '.dev.vars' });
 
 export default defineConfig({
   test: {
     environment: 'node',
   },
-})
+});

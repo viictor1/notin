@@ -24,8 +24,8 @@ beforeAll(async () => {
     testEnv
   );
 
-  const body = (await res.json()) as { token: string };
-  token = body.token;
+  const body = (await res.json()) as { accessToken: string };
+  token = body.accessToken;
 });
 
 describe('POST /notes', () => {
