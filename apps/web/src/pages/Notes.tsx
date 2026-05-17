@@ -5,6 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import type { Note } from '../types';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { Editor } from '../components/Editor';
+
+const isContentEmpty = (html: string) => !html.replace(/<[^>]*>/g, '').trim();
 
 export const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -66,7 +69,7 @@ export const Notes = () => {
   };
 
   const save = async () => {
-    if (!content.trim()) return;
+    if (isContentEmpty(content)) return;
     setIsSaving(true);
     setSaveError(null);
     try {
@@ -191,17 +194,16 @@ export const Notes = () => {
                 )}
                 <button
                   onClick={save}
-                  disabled={isSaving || !content.trim()}
+                  disabled={isSaving || isContentEmpty(content)}
                   className="btn-primary ml-4"
                 >
                   {isSaving ? 'salvando...' : 'salvar'}
                 </button>
               </div>
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
+              <Editor
+                content={content}
+                onChange={setContent}
                 placeholder="comece a escrever..."
-                className="flex-1 bg-transparent text-app text-sm p-6 outline-none resize-none leading-relaxed placeholder:text-muted"
               />
             </>
           ) : (
