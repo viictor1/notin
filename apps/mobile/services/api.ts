@@ -65,6 +65,7 @@ api.interceptors.response.use(
       !originalRequest.url?.includes('/auth/login')
     ) {
       if (isRefreshing) {
+        originalRequest._retry = true;
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((token) => {

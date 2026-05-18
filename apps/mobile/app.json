@@ -8,7 +8,7 @@
     "icon": "./assets/notin.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/notin.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,12 +16,12 @@
       "package": "com.notin.mobile",
       "predictiveBackGestureEnabled": false,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/notin.png",
         "backgroundColor": "#612D53"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/notin.png"
     },
     "plugins": [
       "expo-secure-store",
