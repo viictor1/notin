@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "notin",
+    "scheme": "notin",
+    "slug": "mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/notin.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/notin.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "android": {
+      "package": "com.notin.mobile",
+      "predictiveBackGestureEnabled": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/notin.png",
+        "backgroundColor": "#612D53"
+      }
+    },
+    "web": {
+      "favicon": "./assets/notin.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-router"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c8038f11-3f20-46cb-aefc-4f0ba5352bc3"
+      }
+    }
+  }
+}

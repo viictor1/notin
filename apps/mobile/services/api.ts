@@ -1,6 +1,14 @@
 import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 
-const BASE_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
+if (!BASE_URL) {
+  throw new Error('EXPO_PUBLIC_API_URL não definida');
+}
+
+const REFRESH_TOKEN_KEY = 'refreshToken';
 
 let accessToken: string | null = null;
 
@@ -8,9 +16,17 @@ export const setAccessToken = (token: string | null) => {
   accessToken = token;
 };
 
+export const saveRefreshToken = (token: string) =>
+  SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+
+export const getRefreshToken = () =>
+  SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+
+export const deleteRefreshToken = () =>
+  SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+
 export const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
@@ -57,7 +73,6 @@ api.interceptors.response.use(
             ...(originalRequest.headers ?? {}),
             Authorization: `Bearer ${token}`,
           };
-          return;
           return api(originalRequest);
         });
       }
@@ -66,19 +81,24 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post(
-          `${BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
+        const refreshToken = await getRefreshToken();
+
+        if (!refreshToken) throw new Error('No refresh token');
+
+        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {
+          refreshToken,
+        });
+
         setAccessToken(data.accessToken);
+        await saveRefreshToken(data.refreshToken);
         processQueue(null, data.accessToken);
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
       } catch (err) {
         processQueue(err, null);
         setAccessToken(null);
-        window.location.href = '/login';
+        await deleteRefreshToken();
+        router.replace('/login');
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
@@ -88,11 +108,13 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 export const authService = {
-  login: (credential: { password: string } | { code: string }) =>
+  login: (credential: { password: string }) =>
     api.post('/auth/login', credential),
   logout: () => api.post('/auth/logout'),
-  refresh: () => api.post('/auth/refresh', {}, { withCredentials: true }),
+  refresh: (refreshToken: string) =>
+    axios.post(`${BASE_URL}/auth/refresh`, { refreshToken }),
 };
 
 export const notesService = {

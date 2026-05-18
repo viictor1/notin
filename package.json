@@ -10,7 +10,7 @@
     "dev:web": "npm -w apps/web run dev",
     "deploy:api": "npm -w apps/api run deploy",
     "lint": "eslint .",
-    "format": "prettier --write \"apps/**/src/**/*.{ts,tsx}\"",
+    "format": "prettier --write \"apps/**/*.{ts,tsx}\" --ignore-path .gitignore",
     "test:api": "npm -w apps/api run test",
     "test:web": "npm -w apps/web run test",
     "test": "npm run test:api && npm run test:web"

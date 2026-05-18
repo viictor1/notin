@@ -62,16 +62,19 @@ authRouter.post('/login', async (c) => {
     'Set-Cookie',
     `${COOKIE_NAME}=${refreshToken}; ${getCookieOptions()}`
   );
-  return c.json({ token });
+  return c.json({ accessToken: token, refreshToken });
 });
 
 authRouter.post('/refresh', async (c) => {
   const cookieHeader = c.req.header('Cookie') ?? '';
-  const refreshToken = cookieHeader
+  const cookieToken = cookieHeader
     .split(';')
     .map((s) => s.trim())
     .find((s) => s.startsWith(`${COOKIE_NAME}=`))
     ?.split('=')[1];
+
+  const body = await c.req.json().catch(() => ({}));
+  const refreshToken = cookieToken ?? body.refreshToken;
 
   if (!refreshToken) return c.json({ error: 'Refresh token required' }, 401);
 
@@ -99,7 +102,7 @@ authRouter.post('/refresh', async (c) => {
       'Set-Cookie',
       `${COOKIE_NAME}=${newRefreshToken}; ${getCookieOptions()}`
     );
-    return c.json({ token });
+    return c.json({ accessToken: token, refreshToken: newRefreshToken });
   } catch {
     return c.json({ error: 'Invalid refresh token' }, 401);
   }
