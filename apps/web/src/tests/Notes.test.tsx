@@ -1,7 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Notes } from '../pages/Notes';
+
+const DEBOUNCE_MS = 4000;
 
 const mockNavigate = vi.fn();
 const mockLogout = vi.fn();
@@ -13,6 +15,10 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({ logout: mockLogout }),
+}));
+
+vi.mock('../hooks/useTheme', () => ({
+  useTheme: () => ({ isDark: false, toggle: vi.fn() }),
 }));
 
 vi.mock('../services/api', () => ({
@@ -69,11 +75,24 @@ const renderNotes = () =>
 
 const waitForList = () => waitFor(() => screen.getByText('nota um'));
 
+// Dispara o auto-save avançando os timers além do debounce.
+// O act() garante que todas as atualizações de estado causadas pelo save
+// (setStatus, setNotes, etc.) sejam processadas antes das assertions.
+const triggerAutoSave = () => act(() => vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 100));
+
 describe('Notes', () => {
   beforeEach(async () => {
+    // shouldAdvanceTime: true faz o relógio falso avançar em tempo real
+    // automaticamente — o waitFor consegue fazer polling via setTimeout,
+    // mas ainda podemos saltar o debounce manualmente com advanceTimersByTimeAsync
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.clearAllMocks();
     const { notesService } = await import('../services/api');
     vi.mocked(notesService.list).mockResolvedValue({ data: mockNotes } as any);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('listagem', () => {
@@ -132,7 +151,7 @@ describe('Notes', () => {
       ).toBeInTheDocument();
     });
 
-    it('cria nota com título e conteúdo preenchidos', async () => {
+    it('cria nota com título e conteúdo após debounce', async () => {
       const { notesService } = await import('../services/api');
       vi.mocked(notesService.create).mockResolvedValueOnce({
         data: {
@@ -153,7 +172,8 @@ describe('Notes', () => {
       fireEvent.change(screen.getByTestId('editor'), {
         target: { value: 'novo conteudo' },
       });
-      fireEvent.click(screen.getByText('salvar'));
+
+      await triggerAutoSave();
 
       await waitFor(() => {
         expect(notesService.create).toHaveBeenCalledWith(
@@ -163,7 +183,52 @@ describe('Notes', () => {
       });
     });
 
-    it('exibe erro quando a criação falha', async () => {
+    it('exibe indicador de salvando durante o request', async () => {
+      const { notesService } = await import('../services/api');
+      // Promessa que nunca resolve para manter o estado "saving"
+      vi.mocked(notesService.create).mockReturnValueOnce(new Promise(() => {}));
+
+      renderNotes();
+      await waitForList();
+      fireEvent.click(screen.getByText('+ nova nota'));
+      fireEvent.change(screen.getByTestId('editor'), {
+        target: { value: 'conteudo' },
+      });
+
+      await triggerAutoSave();
+
+      await waitFor(() =>
+        expect(screen.getByText('salvando...')).toBeInTheDocument()
+      );
+    });
+
+    it('exibe "salvo" após criação bem-sucedida', async () => {
+      const { notesService } = await import('../services/api');
+      vi.mocked(notesService.create).mockResolvedValueOnce({
+        data: {
+          id: '3',
+          title: '',
+          content: 'conteudo',
+          created_at: '2026-01-03T00:00:00Z',
+          updated_at: '2026-01-03T00:00:00Z',
+        },
+      } as any);
+
+      renderNotes();
+      await waitForList();
+      fireEvent.click(screen.getByText('+ nova nota'));
+      fireEvent.change(screen.getByTestId('editor'), {
+        target: { value: 'conteudo' },
+      });
+
+      await triggerAutoSave();
+
+      await waitFor(() =>
+        expect(screen.getByText('salvo')).toBeInTheDocument()
+      );
+    });
+
+    it('exibe "erro ao salvar" quando a criação falha', async () => {
       const { notesService } = await import('../services/api');
       vi.mocked(notesService.create).mockRejectedValueOnce(new Error('500'));
 
@@ -173,12 +238,11 @@ describe('Notes', () => {
       fireEvent.change(screen.getByTestId('editor'), {
         target: { value: 'conteudo' },
       });
-      fireEvent.click(screen.getByText('salvar'));
+
+      await triggerAutoSave();
 
       await waitFor(() => {
-        expect(
-          screen.getByText('Erro ao salvar. Tente novamente.')
-        ).toBeInTheDocument();
+        expect(screen.getByText('erro ao salvar')).toBeInTheDocument();
       });
     });
 
@@ -190,7 +254,7 @@ describe('Notes', () => {
           data: {
             id: '3',
             title: '',
-            content: 'conteudo',
+            content: 'conteudo editado',
             created_at: '2026-01-03T00:00:00Z',
             updated_at: '2026-01-03T00:00:00Z',
           },
@@ -203,23 +267,31 @@ describe('Notes', () => {
         target: { value: 'conteudo' },
       });
 
-      fireEvent.click(screen.getByText('salvar'));
-      await waitFor(() => screen.getByText('Erro ao salvar. Tente novamente.'));
+      // Primeira tentativa — falha
+      await triggerAutoSave();
+      await waitFor(() => screen.getByText('erro ao salvar'));
 
-      fireEvent.click(screen.getByText('salvar'));
+      // Após um erro o usuário continua editando — a mudança de conteúdo é o
+      // que aciona um novo useEffect de debounce. Sem ela, nenhum setTimeout
+      // novo é criado e triggerAutoSave não teria nada para disparar.
+      fireEvent.change(screen.getByTestId('editor'), {
+        target: { value: 'conteudo editado' },
+      });
+
+      // Segunda tentativa — sucesso
+      await triggerAutoSave();
       await waitFor(() => {
-        expect(
-          screen.queryByText('Erro ao salvar. Tente novamente.')
-        ).not.toBeInTheDocument();
+        expect(screen.queryByText('erro ao salvar')).not.toBeInTheDocument();
+        expect(screen.getByText('salvo')).toBeInTheDocument();
       });
     });
   });
 
   describe('edição', () => {
-    it('atualiza nota ao salvar com título editado', async () => {
+    it('atualiza nota após editar título e aguardar debounce', async () => {
       const { notesService } = await import('../services/api');
       vi.mocked(notesService.update).mockResolvedValueOnce({
-        data: { success: true },
+        data: { ...mockNotes[0], title: 'nota editada' },
       } as any);
 
       renderNotes();
@@ -228,7 +300,8 @@ describe('Notes', () => {
       fireEvent.change(screen.getByDisplayValue('nota um'), {
         target: { value: 'nota editada' },
       });
-      fireEvent.click(screen.getByText('salvar'));
+
+      await triggerAutoSave();
 
       await waitFor(() => {
         expect(notesService.update).toHaveBeenCalledWith(
@@ -239,10 +312,10 @@ describe('Notes', () => {
       });
     });
 
-    it('atualiza nota ao salvar com conteúdo editado via Editor', async () => {
+    it('atualiza nota após editar conteúdo via Editor e aguardar debounce', async () => {
       const { notesService } = await import('../services/api');
       vi.mocked(notesService.update).mockResolvedValueOnce({
-        data: { success: true },
+        data: { ...mockNotes[0], content: '<p>conteudo editado</p>' },
       } as any);
 
       renderNotes();
@@ -251,13 +324,39 @@ describe('Notes', () => {
       fireEvent.change(screen.getByTestId('editor'), {
         target: { value: '<p>conteudo editado</p>' },
       });
-      fireEvent.click(screen.getByText('salvar'));
+
+      await triggerAutoSave();
 
       await waitFor(() => {
         expect(notesService.update).toHaveBeenCalledWith(
           '1',
           'nota um',
           '<p>conteudo editado</p>'
+        );
+      });
+    });
+
+    it('faz flush do save ao trocar de nota sem aguardar debounce', async () => {
+      const { notesService } = await import('../services/api');
+      vi.mocked(notesService.update).mockResolvedValueOnce({
+        data: { ...mockNotes[0], content: 'editado antes de trocar' },
+      } as any);
+
+      renderNotes();
+      await waitForList();
+      fireEvent.click(screen.getByText('nota um'));
+      fireEvent.change(screen.getByTestId('editor'), {
+        target: { value: 'editado antes de trocar' },
+      });
+
+      // Troca de nota sem esperar o debounce — deve fazer flush imediato
+      fireEvent.click(screen.getByText('nota dois'));
+
+      await waitFor(() => {
+        expect(notesService.update).toHaveBeenCalledWith(
+          '1',
+          'nota um',
+          'editado antes de trocar'
         );
       });
     });
@@ -318,16 +417,16 @@ describe('Notes', () => {
         ).toBeInTheDocument();
       });
     });
+  });
 
-    describe('autenticação', () => {
-      it('faz logout e navega para /login ao clicar em "sair"', async () => {
-        renderNotes();
-        await waitForList();
-        fireEvent.click(screen.getByText('sair'));
-        await waitFor(() => {
-          expect(mockLogout).toHaveBeenCalled();
-          expect(mockNavigate).toHaveBeenCalledWith('/login');
-        });
+  describe('autenticação', () => {
+    it('faz logout e navega para /login ao clicar em "sair"', async () => {
+      renderNotes();
+      await waitForList();
+      fireEvent.click(screen.getByText('sair'));
+      await waitFor(() => {
+        expect(mockLogout).toHaveBeenCalled();
+        expect(mockNavigate).toHaveBeenCalledWith('/login');
       });
     });
   });
