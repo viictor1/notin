@@ -4,10 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 
 export const Login = () => {
-  const [mode, setMode] = useState<'password' | 'code'>('password');
-  const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading, error, clearError, isAuthenticated } = useAuth();
+  const { login, isLoading, error, isAuthenticated } = useAuth();
   const { isDark, toggle } = useTheme();
   const navigate = useNavigate();
 
@@ -17,8 +15,7 @@ export const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'code' && code.length !== 6) return;
-    await login(mode === 'password' ? { password } : { code });
+    await login({ password });
   };
 
   return (
@@ -42,47 +39,16 @@ export const Login = () => {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label
-              htmlFor={mode === 'password' ? 'password' : 'code'}
-              className="text-xs font-medium block mb-1 text-app"
-            >
-              {mode === 'password' ? 'Senha' : 'Código do autenticador'}
-            </label>
-            {mode === 'password' ? (
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-app"
-                placeholder="••••••••"
-                required
-              />
-            ) : (
-              <input
-                id="code"
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                minLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                className="input-app tracking-widest text-center"
-                placeholder="000000"
-                required
-              />
-            )}
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-app"
+              placeholder="••••••••"
+              required
+            />
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setMode((m) => (m === 'password' ? 'code' : 'password'));
-              clearError();
-            }}
-            className="text-xs text-muted hover:text-app w-full text-center mt-1 cursor-pointer"
-          >
-            {mode === 'password' ? 'usar autenticador' : 'usar senha'}
-          </button>
           {error && <p className="text-xs text-primary">{error}</p>}
           <button
             type="submit"

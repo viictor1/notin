@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useCallback, memo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notesService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +7,56 @@ import type { Note } from '../types';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { Editor } from '../components/Editor';
 
+export const DEBOUNCE_MS = 3000;
+
+const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  });
+
 const isContentEmpty = (html: string) => !html.replace(/<[^>]*>/g, '').trim();
+
+interface NoteItemProps {
+  note: Note;
+  isSelected: boolean;
+  onSelect: (note: Note) => void;
+  onRequestDelete: (id: string) => void;
+}
+
+const NoteItem = memo(
+  ({ note, isSelected, onSelect, onRequestDelete }: NoteItemProps) => (
+    <div
+      onClick={() => onSelect(note)}
+      className={`px-4 py-3 border-b border-app cursor-pointer group transition-colors border-l-2 ${
+        isSelected
+          ? 'bg-app border-l-[var(--primary-hover)]'
+          : 'border-l-transparent hover:bg-app'
+      }`}
+    >
+      <p className="text-sm font-medium truncate text-app">
+        {note.title ?? 'sem título'}
+      </p>
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-xs text-muted">
+          {formatDate(note.updated_at)}
+        </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRequestDelete(note.id);
+          }}
+          className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+        >
+          excluir
+        </button>
+      </div>
+    </div>
+  )
+);
+
+NoteItem.displayName = 'NoteItem';
 
 export const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -15,112 +64,196 @@ export const Notes = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isNew, setIsNew] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>(
+    'idle'
+  );
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+
   const { logout } = useAuth();
   const { isDark, toggle } = useTheme();
   const navigate = useNavigate();
-  const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [error, setError] = useState('');
-  const [saveError, setSaveError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchNotes();
+  const selectedRef = useRef<Note | null>(null);
+  const isNewRef = useRef(false);
+
+  const savingKeys = useRef(new Set<string>());
+
+  const pendingFlush = useRef(
+    new Map<string, { title: string; content: string }>()
+  );
+
+  const isCreating = useRef(false);
+
+  const lastSaved = useRef(
+    new Map<string, { title: string; content: string }>()
+  );
+
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const setSelectedSync = useCallback((note: Note | null) => {
+    selectedRef.current = note;
+    setSelected(note);
+  }, []);
+
+  const setIsNewSync = useCallback((val: boolean) => {
+    isNewRef.current = val;
+    setIsNew(val);
+  }, []);
+
+  const cancelDebounce = useCallback(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !confirmId) clearSelection();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [confirmId]);
+    notesService
+      .list()
+      .then(({ data }) => setNotes(data))
+      .catch(() => setError('erro ao carregar notas'))
+      .finally(() => setIsLoading(false));
+  }, []);
 
-  const fetchNotes = async () => {
-    try {
-      const { data } = await notesService.list();
-      setNotes(data);
-    } catch {
-      setError('erro ao carregar notas');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const save = useCallback(
+    async (t: string, c: string, flush = false) => {
+      const snapshot = {
+        selected: selectedRef.current,
+        isNew: isNewRef.current,
+      };
 
-  const clearSelection = () => {
-    setSelected(null);
-    setTitle('');
-    setContent('');
-    setIsNew(false);
-  };
+      const lockKey = snapshot.isNew ? 'new' : snapshot.selected?.id;
+      if (!lockKey) return;
+      if (isContentEmpty(c)) return;
 
-  const selectNote = (note: Note) => {
-    setSelected(note);
-    setTitle(note.title ?? '');
-    setContent(note.content);
-    setIsNew(false);
-  };
+      const prev = lastSaved.current.get(lockKey);
+      if (prev?.title === t && prev?.content === c) return;
 
-  const newNote = () => {
-    setSelected(null);
-    setTitle('');
-    setContent('');
-    setIsNew(true);
-  };
-
-  const save = async () => {
-    if (isContentEmpty(content)) return;
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      if (isNew) {
-        const { data } = await notesService.create(title || null, content);
-        setNotes((prev) => [data, ...prev]);
-        setSelected(data);
-        setIsNew(false);
-      } else if (selected) {
-        const { data } = await notesService.update(
-          selected.id,
-          title || null,
-          content
-        );
-        setNotes((prev) => prev.map((n) => (n.id === data.id ? data : n)));
-        setSelected(data);
+      if (savingKeys.current.has(lockKey)) {
+        if (flush) pendingFlush.current.set(lockKey, { title: t, content: c });
+        return;
       }
-    } catch {
-      setSaveError('Erro ao salvar. Tente novamente.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
-  const deleteNote = async (id: string) => {
-    try {
-      await notesService.delete(id);
-      setNotes((prev) => prev.filter((n) => n.id !== id));
-      if (selected?.id === id) clearSelection();
-    } catch {
-      setError('Erro ao excluir nota. Tente novamente.');
-    }
-  };
+      savingKeys.current.add(lockKey);
+      setStatus('saving');
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+      try {
+        if (snapshot.isNew) {
+          if (isCreating.current) return;
+          isCreating.current = true;
+          try {
+            const { data } = await notesService.create(t || null, c);
+            setNotes((prev) => [data, ...prev]);
+            if (isNewRef.current) {
+              setSelectedSync(data);
+              setIsNewSync(false);
+            }
+            lastSaved.current.set('new', { title: t, content: c });
+            lastSaved.current.set(data.id, { title: t, content: c });
+          } finally {
+            isCreating.current = false;
+          }
+        } else if (snapshot.selected) {
+          const { data } = await notesService.update(
+            snapshot.selected.id,
+            t || null,
+            c
+          );
+          setNotes((prev) => prev.map((n) => (n.id === data.id ? data : n)));
+          if (selectedRef.current?.id === data.id) setSelectedSync(data);
+          lastSaved.current.set(snapshot.selected.id, { title: t, content: c });
+        }
 
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    });
+        setStatus('saved');
+        setTimeout(() => setStatus('idle'), 2000);
+      } catch {
+        setStatus('error');
+      } finally {
+        savingKeys.current.delete(lockKey);
+
+        const pending = pendingFlush.current.get(lockKey);
+        if (pending) {
+          pendingFlush.current.delete(lockKey);
+          save(pending.title, pending.content);
+        }
+      }
+    },
+    [setSelectedSync, setIsNewSync]
+  );
+
+  useEffect(() => {
+    if (!selectedRef.current && !isNewRef.current) return;
+    debounceTimer.current = setTimeout(() => save(title, content), DEBOUNCE_MS);
+    return cancelDebounce;
+  }, [title, content, save, cancelDebounce]);
+
+  const clearEditor = useCallback(
+    (flushSave = true) => {
+      cancelDebounce();
+      if (flushSave) save(title, content, true);
+      setSelectedSync(null);
+      setIsNewSync(false);
+      setTitle('');
+      setContent('');
+    },
+    [title, content, save, cancelDebounce, setSelectedSync, setIsNewSync]
+  );
+
+  const selectNote = useCallback(
+    (note: Note) => {
+      cancelDebounce();
+      save(title, content, true);
+      setSelectedSync(note);
+      setIsNewSync(false);
+      setTitle(note.title ?? '');
+      setContent(note.content);
+      lastSaved.current.set(note.id, {
+        title: note.title ?? '',
+        content: note.content,
+      });
+    },
+    [title, content, save, cancelDebounce, setSelectedSync, setIsNewSync]
+  );
+
+  const newNote = useCallback(() => {
+    cancelDebounce();
+    save(title, content, true);
+    setSelectedSync(null);
+    setIsNewSync(true);
+    setTitle('');
+    setContent('');
+    lastSaved.current.delete('new');
+  }, [title, content, save, cancelDebounce, setSelectedSync, setIsNewSync]);
+
+  const deleteNote = useCallback(
+    async (id: string) => {
+      try {
+        await notesService.delete(id);
+        setNotes((prev) => prev.filter((n) => n.id !== id));
+        lastSaved.current.delete(id);
+        pendingFlush.current.delete(id);
+        if (selectedRef.current?.id === id) clearEditor(false);
+      } catch {
+        setError('Erro ao excluir nota. Tente novamente.');
+      }
+    },
+    [clearEditor]
+  );
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !confirmId) clearEditor();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [confirmId, clearEditor]);
+
+  const isEditing = selected !== null || isNew;
 
   return (
     <div className="min-h-screen bg-app flex flex-col">
       <header className="bg-surface border-b border-app px-6 py-4 flex items-center justify-between">
         <button
-          onClick={clearSelection}
+          onClick={() => clearEditor()}
           className="font-bold text-lg tracking-tight text-primary cursor-pointer"
         >
           notin
@@ -129,10 +262,20 @@ export const Notes = () => {
           <button onClick={newNote} className="btn-primary">
             + nova nota
           </button>
-          <button onClick={toggle} className="btn-ghost text-base">
+          <button
+            onClick={toggle}
+            className="btn-ghost text-base"
+            aria-label="Alternar tema"
+          >
             {isDark ? '☀' : '☾'}
           </button>
-          <button onClick={handleLogout} className="btn-ghost">
+          <button
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            className="btn-ghost"
+          >
             sair
           </button>
         </div>
@@ -148,39 +291,19 @@ export const Notes = () => {
             <p className="p-4 text-xs text-muted">nenhuma nota ainda</p>
           ) : (
             notes.map((note) => (
-              <div
+              <NoteItem
                 key={note.id}
-                onClick={() => selectNote(note)}
-                className={`px-4 py-3 border-b border-app cursor-pointer group transition-colors border-l-2 ${
-                  selected?.id === note.id
-                    ? 'bg-app border-l-[var(--primary-hover)]'
-                    : 'border-l-transparent hover:bg-app'
-                }`}
-              >
-                <p className="text-sm font-medium truncate text-app">
-                  {note.title ?? 'sem título'}
-                </p>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs text-muted">
-                    {formatDate(note.updated_at)}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setConfirmId(note.id);
-                    }}
-                    className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  >
-                    excluir
-                  </button>
-                </div>
-              </div>
+                note={note}
+                isSelected={selected?.id === note.id}
+                onSelect={selectNote}
+                onRequestDelete={setConfirmId}
+              />
             ))
           )}
         </aside>
 
         <main className="flex-1 flex flex-col">
-          {selected || isNew ? (
+          {isEditing ? (
             <>
               <div className="bg-surface border-b border-app px-6 py-3 flex items-center justify-between">
                 <input
@@ -189,16 +312,15 @@ export const Notes = () => {
                   placeholder="sem título"
                   className="bg-transparent text-base font-medium text-app outline-none flex-1 placeholder:text-muted"
                 />
-                {saveError && (
-                  <p className="text-xs text-red-500 mr-3">{saveError}</p>
+                {status === 'saving' && (
+                  <span className="text-xs text-muted">salvando...</span>
                 )}
-                <button
-                  onClick={save}
-                  disabled={isSaving || isContentEmpty(content)}
-                  className="btn-primary ml-4"
-                >
-                  {isSaving ? 'salvando...' : 'salvar'}
-                </button>
+                {status === 'saved' && (
+                  <span className="text-xs text-green-500">salvo</span>
+                )}
+                {status === 'error' && (
+                  <span className="text-xs text-red-500">erro ao salvar</span>
+                )}
               </div>
               <Editor
                 content={content}

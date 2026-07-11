@@ -16,14 +16,12 @@ authRouter.post('/login', async (c) => {
   const body = await parseBody<{ password?: string; code?: string }>(c);
   if (!body) return c.json({ error: 'Invalid JSON' }, 400);
 
-  const { password, code } = body;
-  if (!password && !code)
-    return c.json({ error: 'Password or code required' }, 400);
+  const { password } = body;
+  if (!password) {
+    return c.json({ error: 'Password required' }, 400);
+  }
 
-  if (password && password !== c.env.OWNER_PASSWORD)
-    return c.json({ error: 'Invalid credentials' }, 401);
-
-  if (code) {
+  if (password && password !== c.env.OWNER_PASSWORD) {
     if (!c.env.TOTP_SECRET) {
       return c.json({ error: 'Authenticator not configured' }, 503);
     }
@@ -39,8 +37,9 @@ authRouter.post('/login', async (c) => {
       digits: 6,
       period: 30,
     });
-    if (totp.validate({ token: code, window: 1 }) === null)
-      return c.json({ error: 'Invalid code' }, 401);
+    if (totp.validate({ token: password, window: 1 }) === null) {
+      return c.json({ error: 'Invalid credentials' }, 401);
+    }
   }
 
   const secret = new TextEncoder().encode(c.env.JWT_SECRET);
