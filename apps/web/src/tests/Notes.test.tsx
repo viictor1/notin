@@ -7,9 +7,7 @@ import {
   act,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { Notes } from '../pages/Notes';
-
-const DEBOUNCE_MS = 4000;
+import { Notes, DEBOUNCE_MS } from '../pages/Notes';
 
 const mockNavigate = vi.fn();
 const mockLogout = vi.fn();

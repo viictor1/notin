@@ -7,7 +7,7 @@ import type { Note } from '../types';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { Editor } from '../components/Editor';
 
-const DEBOUNCE_MS = 3000;
+export const DEBOUNCE_MS = 3000;
 
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString('pt-BR', {
