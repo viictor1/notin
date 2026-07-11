@@ -48,7 +48,7 @@ describe('POST /auth/login', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ password: code }),
       },
       testEnv
     );
@@ -80,7 +80,7 @@ describe('POST /auth/login', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: '000000' }),
+        body: JSON.stringify({ password: '000000' }),
       },
       testEnv
     );

@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Notes } from '../pages/Notes';
 
@@ -78,7 +84,8 @@ const waitForList = () => waitFor(() => screen.getByText('nota um'));
 // Dispara o auto-save avançando os timers além do debounce.
 // O act() garante que todas as atualizações de estado causadas pelo save
 // (setStatus, setNotes, etc.) sejam processadas antes das assertions.
-const triggerAutoSave = () => act(() => vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 100));
+const triggerAutoSave = () =>
+  act(() => vi.advanceTimersByTimeAsync(DEBOUNCE_MS + 100));
 
 describe('Notes', () => {
   beforeEach(async () => {
